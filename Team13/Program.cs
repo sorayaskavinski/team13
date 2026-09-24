@@ -1,10 +1,14 @@
+using Microsoft.EntityFrameworkCore;
 using Team13.Components;
+using Team13.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddDbContext<Team13Context>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Team13Database")));
 
 var app = builder.Build();
 

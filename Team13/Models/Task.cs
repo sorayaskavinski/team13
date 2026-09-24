@@ -18,5 +18,9 @@ public class Task
 
     public int? AssignedTo { get; set; }
 
+    public User? AssignedUser { get; set; }
+
     public int ProjectId { get; set; }
+
+    public Project Project { get; set; } = null!;
 }

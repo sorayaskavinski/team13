@@ -13,6 +13,12 @@ public class Team13Context(DbContextOptions<Team13Context> options) : DbContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Team13.Models.User>().HasData(
+            new Team13.Models.User { UserId = 1001, UserName = "Soraya", Email = "soraya@team13.local" },
+            new Team13.Models.User { UserId = 1002, UserName = "Wisdom", Email = "wisdom@team13.local" },
+            new Team13.Models.User { UserId = 1003, UserName = "Eyob", Email = "eyob@team13.local" },
+            new Team13.Models.User { UserId = 1004, UserName = "Tomas", Email = "tomas@team13.local" });
+
         modelBuilder.Entity<TaskEntity>(task =>
         {
             task.HasOne(item => item.Project)

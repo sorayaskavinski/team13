@@ -1,0 +1,91 @@
+@page "/tasks"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using Team13.Data
+@using TaskModel = Team13.Models.Task
+@inject Team13Context Db
+
+<PageTitle>Tasks</PageTitle>
+
+<div class="task-list-page">
+    <div class="task-list-heading">
+        <div>
+            <p class="eyebrow">Task management</p>
+            <h1>Tasks</h1>
+            <p class="task-list-intro">Track work across your projects and team.</p>
+        </div>
+        <a class="btn btn-primary" href="/tasks/create">Create task</a>
+    </div>
+
+    @if (isLoading)
+    {
+        <p><em>Loading tasks...</em></p>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="alert alert-danger" role="alert">@errorMessage</p>
+    }
+    else if (tasks.Count == 0)
+    {
+        <div class="task-list-empty">
+            <h2>No tasks yet</h2>
+            <p>Create the first task to start tracking work.</p>
+            <a class="btn btn-primary" href="/tasks/create">Create task</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle task-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Assigned person</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var task in tasks)
+                    {
+                        <tr>
+                            <th scope="row">@task.Title</th>
+                            <td>@(task.AssignedUser?.UserName ?? "Unassigned")</td>
+                            <td><span class="task-badge priority-@task.Priority.ToLowerInvariant()">@task.Priority</span></td>
+                            <td><span class="task-badge status-@task.Status.ToLowerInvariant().Replace(" ", "-")">@task.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<TaskModel> tasks = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        try
+        {
+            tasks = await Db.Tasks
+                .AsNoTracking()
+                .Include(task => task.AssignedUser)
+                .OrderBy(task => task.Status)
+                .ThenBy(task => task.Priority)
+                .ThenBy(task => task.Title)
+                .ToListAsync();
+        }
+        catch (Exception)
+        {
+            errorMessage = "Tasks could not be loaded. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+}

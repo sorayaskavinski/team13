@@ -1,0 +1,140 @@
+@page "/tasks/edit/{TaskId:int}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using Team13.Data
+@using Team13.Models
+@using TaskModel = Team13.Models.Task
+@inject Team13Context Db
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Task</PageTitle>
+
+<div class="task-form-page">
+    <div class="task-form-heading">
+        <div>
+            <p class="eyebrow">Task management</p>
+            <h1>Edit task</h1>
+            <p class="task-form-intro">Update the task details, assignment, priority, or status.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="/tasks">Back to tasks</a>
+    </div>
+
+    @if (isLoading)
+    {
+        <p><em>Loading task...</em></p>
+    }
+    else if (task is null)
+    {
+        <div class="alert alert-warning" role="alert">
+            This task could not be found.
+        </div>
+        <a class="btn btn-primary" href="/tasks">Back to tasks</a>
+    }
+    else
+    {
+        <EditForm Model="task" OnValidSubmit="SaveTaskAsync" class="task-form">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="task-form-grid">
+                <div class="form-field form-field-wide">
+                    <label for="title">Task title</label>
+                    <InputText id="title" class="form-control" @bind-Value="task.Title" />
+                    <ValidationMessage For="@(() => task.Title)" />
+                </div>
+
+                <div class="form-field form-field-wide">
+                    <label for="description">Description</label>
+                    <InputTextArea id="description" class="form-control" @bind-Value="task.Description" rows="5" />
+                </div>
+
+                <div class="form-field">
+                    <label for="project">Project</label>
+                    <InputSelect id="project" class="form-select" @bind-Value="task.ProjectId">
+                        <option value="0">Select a project</option>
+                        @foreach (var project in projects)
+                        {
+                            <option value="@project.ProjectId">@project.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => task.ProjectId)" />
+                </div>
+
+                <div class="form-field">
+                    <label for="assignee">Assigned team member</label>
+                    <InputSelect id="assignee" class="form-select" @bind-Value="task.AssignedTo">
+                        <option value="">Unassigned</option>
+                        @foreach (var user in users)
+                        {
+                            <option value="@user.UserId">@user.UserName</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="form-field">
+                    <label for="priority">Priority</label>
+                    <InputSelect id="priority" class="form-select" @bind-Value="task.Priority">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                    </InputSelect>
+                </div>
+
+                <div class="form-field">
+                    <label for="status">Status</label>
+                    <InputSelect id="status" class="form-select" @bind-Value="task.Status">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Blocked">Blocked</option>
+                        <option value="Complete">Complete</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <p class="alert alert-danger" role="alert">@errorMessage</p>
+            }
+
+            <div class="task-form-actions">
+                <button type="submit" class="btn btn-primary" disabled="@(projects.Count == 0)">Save changes</button>
+                <a class="btn btn-link" href="/tasks">Cancel</a>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int TaskId { get; set; }
+
+    private TaskModel? task;
+    private List<Project> projects = [];
+    private List<User> users = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        task = await Db.Tasks.FirstOrDefaultAsync(item => item.TaskId == TaskId);
+        projects = await Db.Projects.OrderBy(project => project.Name).ToListAsync();
+        users = await Db.Users.OrderBy(user => user.UserName).ToListAsync();
+        isLoading = false;
+    }
+
+    private async System.Threading.Tasks.Task SaveTaskAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            await Db.SaveChangesAsync();
+            Navigation.NavigateTo("/tasks");
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "The task could not be updated. Please check the selected project and try again.";
+        }
+    }
+}

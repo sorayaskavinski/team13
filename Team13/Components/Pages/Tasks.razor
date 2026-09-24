@@ -4,6 +4,7 @@
 @using Team13.Data
 @using TaskModel = Team13.Models.Task
 @inject Team13Context Db
+@inject IJSRuntime JS
 
 <PageTitle>Tasks</PageTitle>
 
@@ -43,6 +44,7 @@
                         <th scope="col">Assigned person</th>
                         <th scope="col">Priority</th>
                         <th scope="col">Status</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,6 +55,10 @@
                             <td>@(task.AssignedUser?.UserName ?? "Unassigned")</td>
                             <td><span class="task-badge priority-@task.Priority.ToLowerInvariant()">@task.Priority</span></td>
                             <td><span class="task-badge status-@task.Status.ToLowerInvariant().Replace(" ", "-")">@task.Status</span></td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" href="/tasks/edit/@task.TaskId">Edit</a>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-2" @onclick="@(() => DeleteTaskAsync(task))">Delete</button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -85,6 +91,28 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async System.Threading.Tasks.Task DeleteTaskAsync(TaskModel task)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete task '{task.Title}'?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        errorMessage = null;
+        Db.Tasks.Remove(task);
+
+        try
+        {
+            await Db.SaveChangesAsync();
+            tasks.Remove(task);
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "The task could not be deleted. Please try again.";
         }
     }
 

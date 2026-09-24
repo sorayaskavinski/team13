@@ -14,7 +14,7 @@ public class Task
 
     public string Priority { get; set; } = "Medium";
 
-    public string Status { get; set; } = "Not Started";
+    public string Status { get; set; } = "To Do";
 
     public int? AssignedTo { get; set; }
 

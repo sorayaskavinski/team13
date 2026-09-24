@@ -1,0 +1,70 @@
+@page "/projects/create"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using Team13.Data
+@using Team13.Models
+@inject Team13Context Db
+@inject NavigationManager Navigation
+
+<PageTitle>Create Project</PageTitle>
+
+<div class="task-form-page">
+    <div class="task-form-heading">
+        <div>
+            <p class="eyebrow">Project management</p>
+            <h1>Create project</h1>
+            <p class="task-form-intro">Write the project details before adding tasks to it.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="/tasks">Back to tasks</a>
+    </div>
+
+    <EditForm Model="project" OnValidSubmit="CreateProjectAsync" class="task-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="task-form-grid">
+            <div class="form-field form-field-wide">
+                <label for="project-name">Project name</label>
+                <InputText id="project-name" class="form-control" @bind-Value="project.Name" />
+                <ValidationMessage For="@(() => project.Name)" />
+            </div>
+
+            <div class="form-field form-field-wide">
+                <label for="project-description">Description</label>
+                <InputTextArea id="project-description" class="form-control" @bind-Value="project.Description" rows="5" />
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="alert alert-danger" role="alert">@errorMessage</p>
+        }
+
+        <div class="task-form-actions">
+            <button type="submit" class="btn btn-primary">Create project</button>
+            <a class="btn btn-link" href="/tasks">Cancel</a>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private readonly Project project = new();
+    private string? errorMessage;
+
+    private async System.Threading.Tasks.Task CreateProjectAsync()
+    {
+        errorMessage = null;
+        Db.Projects.Add(project);
+
+        try
+        {
+            await Db.SaveChangesAsync();
+            Navigation.NavigateTo("/tasks/create");
+        }
+        catch (DbUpdateException)
+        {
+            Db.Entry(project).State = EntityState.Detached;
+            errorMessage = "The project could not be created. Please try again.";
+        }
+    }
+}

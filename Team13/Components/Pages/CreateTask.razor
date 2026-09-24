@@ -54,7 +54,7 @@
                     <ValidationMessage For="@(() => task.ProjectId)" />
                     @if (projects.Count == 0)
                     {
-                        <small class="form-hint">No projects are available yet.</small>
+                        <small class="form-hint">No projects are available yet. <a href="/projects/create">Write a project first.</a></small>
                     }
                 </div>
 

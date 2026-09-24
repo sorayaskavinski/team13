@@ -20,6 +20,7 @@ public class Task
 
     public User? AssignedUser { get; set; }
 
+    [Range(1, int.MaxValue)]
     public int ProjectId { get; set; }
 
     public Project Project { get; set; } = null!;

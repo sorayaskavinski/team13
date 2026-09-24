@@ -103,12 +103,13 @@
         }
 
         errorMessage = null;
-        Db.Tasks.Remove(task);
 
         try
         {
-            await Db.SaveChangesAsync();
-            tasks.Remove(task);
+            await Db.Tasks
+                .Where(item => item.TaskId == task.TaskId)
+                .ExecuteDeleteAsync();
+            tasks.RemoveAll(item => item.TaskId == task.TaskId);
         }
         catch (DbUpdateException)
         {

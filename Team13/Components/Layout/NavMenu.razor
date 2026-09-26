@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
@@ -34,6 +34,26 @@
             </NavLink>
         </div>
 
+        <!-- Links das Tarefas e Projetos (Eyob) -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tasks/create">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create task
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tasks">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Tasks
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="projects/create">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create project
+            </NavLink>
+        </div>
+
+        <!-- Autenticação (Main) -->
         <AuthorizeView>
             <Authorized>
 

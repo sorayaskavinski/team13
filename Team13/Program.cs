@@ -11,6 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Banco de dados principal do projeto (Team13Context)
+builder.Services.AddDbContext<Team13Context>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Team13Database")));
+
 // Authentication state for Blazor components.
 builder.Services.AddCascadingAuthenticationState();
 
@@ -28,7 +32,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddIdentityCookies();
 
-// Database connection.
+// Database connection para o Identity (ApplicationDbContext)
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(

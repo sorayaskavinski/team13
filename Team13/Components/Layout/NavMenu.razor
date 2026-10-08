@@ -1,4 +1,4 @@
-@implements IDisposable
+﻿@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
@@ -7,8 +7,6 @@
         <a class="navbar-brand" href="">TaskForge</a>
     </div>
 </div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
@@ -34,29 +32,31 @@
             </NavLink>
         </div>
 
-        <!-- Links das Tarefas e Projetos (Eyob) -->
+        <!-- Links for Tasks and Projects -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="tasks/create">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create task
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span>
+                Create task
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="tasks">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Tasks
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span>
+                Tasks
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="projects/create">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Create project
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span>
+                Create project
             </NavLink>
         </div>
 
-        <!-- Autenticação (Main) -->
+        <!-- Authentication -->
         <AuthorizeView>
             <Authorized>
-
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
                         <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span>
@@ -67,7 +67,6 @@
                 <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
-
                         <input type="hidden"
                                name="ReturnUrl"
                                value="@currentUrl" />
@@ -78,11 +77,9 @@
                         </button>
                     </form>
                 </div>
-
             </Authorized>
 
             <NotAuthorized>
-
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Register">
                         <span class="bi bi-person-nav-menu" aria-hidden="true"></span>
@@ -96,7 +93,6 @@
                         Login
                     </NavLink>
                 </div>
-
             </NotAuthorized>
         </AuthorizeView>
 

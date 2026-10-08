@@ -1,19 +1,47 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="taskforge-layout">
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+    <!-- TaskForge Navigation -->
+    <header class="taskforge-navbar">
+
+        <div class="taskforge-nav-container">
+
+            <a href="/" class="taskforge-logo">
+                Task<span>Forge</span>
+            </a>
+
+            <nav class="taskforge-nav-links">
+
+                <a href="/">Home</a>
+
+                <a href="/#features">
+                    Features
+                </a>
+
+                <a href="/#how-it-works">
+                    How It Works
+                </a>
+
+                <a href="#">
+                    Sign In
+                </a>
+
+                <a href="#" class="taskforge-nav-button">
+                    Get Started
+                </a>
+
+            </nav>
+
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
+    </header>
+
+    <!-- Page Content -->
+    <main>
+        @Body
     </main>
+
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

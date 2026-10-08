@@ -1,0 +1,449 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard - TaskForge</PageTitle>
+
+<div class="dashboard-page">
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+
+        <div>
+            <p class="dashboard-eyebrow">TASKFORGE</p>
+
+            <h1>Dashboard</h1>
+
+            <p>
+                View your projects, tasks, and overall progress.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- Search and Filters -->
+    <div class="dashboard-controls">
+
+        <div class="search-box">
+            <span>🔍</span>
+
+            <input
+                type="text"
+                placeholder="Search projects or tasks..."
+                @bind="SearchText"
+                @bind:event="oninput" />
+        </div>
+
+
+        <select @bind="SelectedStatus">
+            <option value="All">All Status</option>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+        </select>
+
+
+        <select @bind="SelectedPriority">
+            <option value="All">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+        </select>
+
+    </div>
+
+
+    <!-- Statistics -->
+    <section class="dashboard-section">
+
+        <div class="section-heading">
+
+            <div>
+                <h2>Overview</h2>
+
+                <p>
+                    A summary of your current projects and tasks.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-stats">
+
+            <div class="stat-card">
+
+                <div class="stat-icon">📁</div>
+
+                <div>
+                    <p>Total Projects</p>
+                    <h2>@TotalProjects</h2>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">✓</div>
+
+                <div>
+                    <p>Total Tasks</p>
+                    <h2>@TotalTasks</h2>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">✓</div>
+
+                <div>
+                    <p>Completed Tasks</p>
+                    <h2>@CompletedTasks</h2>
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">!</div>
+
+                <div>
+                    <p>Overdue Tasks</p>
+                    <h2>@OverdueTasks</h2>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Projects -->
+    <section class="dashboard-section">
+
+        <div class="section-heading">
+
+            <div>
+                <h2>My Projects</h2>
+
+                <p>
+                    View the projects you are working on.
+                </p>
+            </div>
+
+            <span class="result-count">
+                @FilteredProjects.Count() projects
+            </span>
+
+        </div>
+
+
+        <div class="project-grid">
+
+            @foreach (var project in FilteredProjects)
+            {
+                <div class="project-card">
+
+                    <div class="project-card-top">
+
+                        <div>
+
+                            <h3>@project.Name</h3>
+
+                            <p>
+                                @project.Description
+                            </p>
+
+                        </div>
+
+                        <span class="status @GetStatusClass(project.Status)">
+                            @project.Status
+                        </span>
+
+                    </div>
+
+
+                    <div class="project-progress">
+
+                        <div class="progress-info">
+
+                            <span>Progress</span>
+
+                            <span>
+                                @project.Progress%
+                            </span>
+
+                        </div>
+
+
+                        <div class="progress-track">
+
+                            <div
+                                class="progress-fill"
+                                style="width: @project.Progress%;">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="project-footer">
+
+                        <span>
+                            Due @project.DueDate
+                        </span>
+
+                        <span>
+                            @project.TaskCount tasks
+                        </span>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+    </section>
+
+
+    <!-- Tasks -->
+    <section class="dashboard-section">
+
+        <div class="section-heading">
+
+            <div>
+                <h2>My Tasks</h2>
+
+                <p>
+                    View tasks assigned to you.
+                </p>
+            </div>
+
+            <span class="result-count">
+                @FilteredTasks.Count() tasks
+            </span>
+
+        </div>
+
+
+        <div class="task-list">
+
+            @foreach (var task in FilteredTasks)
+            {
+                <div class="dashboard-task">
+
+                    <div class="task-check @(task.Status == "Completed" ? "completed" : "")">
+                    </div>
+
+
+                    <div class="task-details">
+
+                        <h3>
+                            @task.Title
+                        </h3>
+
+                        <p>
+                            @task.ProjectName
+                        </p>
+
+                    </div>
+
+
+                    <span class="priority @task.Priority.ToLower()">
+                        @task.Priority
+                    </span>
+
+
+                    <span class="task-status @(task.Status == "Completed" ? "completed-text" : "")">
+                        @task.Status
+                    </span>
+
+                </div>
+            }
+
+        </div>
+
+    </section>
+
+</div>
+
+
+@code {
+
+    private string SearchText = "";
+
+    private string SelectedStatus = "All";
+
+    private string SelectedPriority = "All";
+
+
+    /*
+     * Temporary UI data.
+     *
+     * Later, this can be replaced with
+     * real project and task data from
+     * the backend.
+     */
+
+    private List<ProjectItem> Projects = new()
+    {
+        new ProjectItem
+        {
+            Name = "Marketing Campaign",
+            Description = "Promote the new product launch.",
+            Status = "In Progress",
+            Progress = 75,
+            DueDate = "Oct 15",
+            TaskCount = 5
+        },
+
+        new ProjectItem
+        {
+            Name = "School Event",
+            Description = "Plan the upcoming student event.",
+            Status = "In Progress",
+            Progress = 50,
+            DueDate = "Oct 20",
+            TaskCount = 8
+        },
+
+        new ProjectItem
+        {
+            Name = "Product Launch",
+            Description = "Prepare the product for launch.",
+            Status = "Not Started",
+            Progress = 0,
+            DueDate = "Nov 02",
+            TaskCount = 4
+        }
+    };
+
+
+    private List<TaskItem> Tasks = new()
+    {
+        new TaskItem
+        {
+            Title = "Prepare presentation",
+            ProjectName = "Marketing Campaign",
+            Priority = "High",
+            Status = "In Progress",
+            DueDate = DateTime.Today.AddDays(5)
+        },
+
+        new TaskItem
+        {
+            Title = "Review project documents",
+            ProjectName = "School Event",
+            Priority = "Medium",
+            Status = "Completed",
+            DueDate = DateTime.Today.AddDays(-2)
+        },
+
+        new TaskItem
+        {
+            Title = "Contact suppliers",
+            ProjectName = "Product Launch",
+            Priority = "Low",
+            Status = "Not Started",
+            DueDate = DateTime.Today.AddDays(10)
+        }
+    };
+
+
+    private IEnumerable<ProjectItem> FilteredProjects =>
+        Projects.Where(project =>
+            (
+                string.IsNullOrWhiteSpace(SearchText) ||
+                project.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                project.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+            )
+            &&
+            (
+                SelectedStatus == "All" ||
+                project.Status == SelectedStatus
+            )
+        );
+
+
+    private IEnumerable<TaskItem> FilteredTasks =>
+        Tasks.Where(task =>
+            (
+                string.IsNullOrWhiteSpace(SearchText) ||
+                task.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                task.ProjectName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+            )
+            &&
+            (
+                SelectedStatus == "All" ||
+                task.Status == SelectedStatus
+            )
+            &&
+            (
+                SelectedPriority == "All" ||
+                task.Priority == SelectedPriority
+            )
+        );
+
+
+    private int TotalProjects => Projects.Count;
+
+    private int TotalTasks => Tasks.Count;
+
+    private int CompletedTasks =>
+        Tasks.Count(task => task.Status == "Completed");
+
+    private int OverdueTasks =>
+        Tasks.Count(task =>
+            task.DueDate < DateTime.Today &&
+            task.Status != "Completed"
+        );
+
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "In Progress" => "in-progress",
+            "Completed" => "completed-status",
+            _ => "not-started"
+        };
+    }
+
+
+    private class ProjectItem
+    {
+        public string Name { get; set; } = "";
+
+        public string Description { get; set; } = "";
+
+        public string Status { get; set; } = "";
+
+        public int Progress { get; set; }
+
+        public string DueDate { get; set; } = "";
+
+        public int TaskCount { get; set; }
+    }
+
+
+    private class TaskItem
+    {
+        public string Title { get; set; } = "";
+
+        public string ProjectName { get; set; } = "";
+
+        public string Priority { get; set; } = "";
+
+        public string Status { get; set; } = "";
+
+        public DateTime DueDate { get; set; }
+    }
+
+}

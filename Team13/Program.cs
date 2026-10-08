@@ -11,13 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Banco de dados principal do projeto (Team13Context)
-builder.Services.AddDbContext<Team13Context>(options =>
+// Project Data (Team13Context) - Use a factory to create the DbContext for each request.
+builder.Services.AddDbContextFactory<Team13Context>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Team13Database")));
 
 // Authentication state for Blazor components.
 builder.Services.AddCascadingAuthenticationState();
-
+builder.Services.AddAuthorization();
 builder.Services.AddScoped<IdentityRedirectManager>();
 
 builder.Services.AddScoped<

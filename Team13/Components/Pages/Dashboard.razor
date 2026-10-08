@@ -1,47 +1,69 @@
 @page "/dashboard"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Team13.Data
+@using Team13.Models
+@inject IDbContextFactory<Team13Context> DbFactory
+@inject NavigationManager NavManager
 
 <PageTitle>Dashboard - TaskForge</PageTitle>
 
 <div class="dashboard-page">
 
     <!-- Dashboard Header -->
-    <div class="dashboard-header">
-
+    <div class="dashboard-header d-flex justify-content-between align-items-center">
+        
         <div>
             <p class="dashboard-eyebrow">TASKFORGE</p>
-
             <h1>Dashboard</h1>
-
-            <p>
-                View your projects, tasks, and overall progress.
-            </p>
+            <p>View your projects, tasks, and overall progress.</p>
         </div>
 
-    </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="text-end me-3">
+                    <small class="text-muted">Logged in as</small>
+                    <div class="fw-semibold">@context.User.Identity?.Name</div>
 
+                    <form action="/Account/Logout?returnUrl=%2F" method="post" class="d-inline">
+                        <AntiforgeryToken />
+                        <button type="submit" class="btn btn-outline-danger btn-sm mt-2">
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+
+            <NotAuthorized>
+                <div class="text-end me-3">
+                    <span class="text-muted">Not logged in</span>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <div class="header-actions">
+            <a href="projects/create" class="btn btn-outline-primary me-2">+ New Project</a>
+            <a href="tasks/create" class="btn btn-primary">+ New Task</a>
+        </div>
+    </div>
 
     <!-- Search and Filters -->
     <div class="dashboard-controls">
-
         <div class="search-box">
             <span>🔍</span>
-
-            <input
-                type="text"
-                placeholder="Search projects or tasks..."
-                @bind="SearchText"
-                @bind:event="oninput" />
+            <input type="text"
+                   placeholder="Search projects or tasks..."
+                   @bind="SearchText"
+                   @bind:event="oninput" />
         </div>
-
 
         <select @bind="SelectedStatus">
             <option value="All">All Status</option>
-            <option value="Not Started">Not Started</option>
+            <option value="To Do">To Do</option>
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
         </select>
-
 
         <select @bind="SelectedPriority">
             <option value="All">All Priorities</option>
@@ -49,401 +71,227 @@
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
         </select>
-
     </div>
 
-
-    <!-- Statistics -->
+    <!-- Overview Statistics -->
     <section class="dashboard-section">
-
         <div class="section-heading">
-
             <div>
                 <h2>Overview</h2>
-
-                <p>
-                    A summary of your current projects and tasks.
-                </p>
+                <p>Click any card to filter your tasks.</p>
             </div>
-
         </div>
 
-
         <div class="dashboard-stats">
-
-            <div class="stat-card">
-
+            <div class="stat-card clickable @(SelectedStatus == "All" ? "active-stat" : "")" @onclick='() => FilterByStatus("All")'>
                 <div class="stat-icon">📁</div>
-
                 <div>
                     <p>Total Projects</p>
                     <h2>@TotalProjects</h2>
                 </div>
-
             </div>
 
-
-            <div class="stat-card">
-
-                <div class="stat-icon">✓</div>
-
+            <div class="stat-card clickable @(SelectedStatus == "All" ? "active-stat" : "")" @onclick='() => FilterByStatus("All")'>
+                <div class="stat-icon">📝</div>
                 <div>
                     <p>Total Tasks</p>
                     <h2>@TotalTasks</h2>
                 </div>
-
             </div>
 
+            <div class="stat-card clickable @(SelectedStatus == "In Progress" ? "active-stat" : "")" @onclick='() => FilterByStatus("In Progress")'>
+                <div class="stat-icon">🔄</div>
+                <div>
+                    <p>In Progress</p>
+                    <h2>@InProgressTasksCount</h2>
+                </div>
+            </div>
 
-            <div class="stat-card">
-
-                <div class="stat-icon">✓</div>
-
+            <div class="stat-card clickable @(SelectedStatus == "Completed" ? "active-stat" : "")" @onclick='() => FilterByStatus("Completed")'>
+                <div class="stat-icon">✅</div>
                 <div>
                     <p>Completed Tasks</p>
-                    <h2>@CompletedTasks</h2>
+                    <h2>@CompletedTasksCount</h2>
                 </div>
-
             </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon">!</div>
-
-                <div>
-                    <p>Overdue Tasks</p>
-                    <h2>@OverdueTasks</h2>
-                </div>
-
-            </div>
-
         </div>
-
     </section>
 
-
-    <!-- Projects -->
+    <!-- My Projects Section -->
     <section class="dashboard-section">
-
         <div class="section-heading">
-
             <div>
                 <h2>My Projects</h2>
-
-                <p>
-                    View the projects you are working on.
-                </p>
+                <p>View projects you are working on.</p>
             </div>
-
             <span class="result-count">
                 @FilteredProjects.Count() projects
             </span>
-
         </div>
 
+        @if (!FilteredProjects.Any())
+        {
+            <p class="text-muted">No projects found matching your criteria.</p>
+        }
+        else
+        {
+            <div class="project-grid">
+                @foreach (var project in FilteredProjects)
+                {
+                    var projectTasks = project.Tasks ?? new List<Team13.Models.Task>();
+                    var totalPTasks = projectTasks.Count;
+                    var completedPTasks = projectTasks.Count(t => string.Equals(t.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "Done", StringComparison.OrdinalIgnoreCase));
+                    var progressPercentage = totalPTasks > 0 ? (int)Math.Round((double)completedPTasks / totalPTasks * 100) : 0;
 
-        <div class="project-grid">
-
-            @foreach (var project in FilteredProjects)
-            {
-                <div class="project-card">
-
-                    <div class="project-card-top">
-
-                        <div>
-
-                            <h3>@project.Name</h3>
-
-                            <p>
-                                @project.Description
-                            </p>
-
-                        </div>
-
-                        <span class="status @GetStatusClass(project.Status)">
-                            @project.Status
-                        </span>
-
-                    </div>
-
-
-                    <div class="project-progress">
-
-                        <div class="progress-info">
-
-                            <span>Progress</span>
-
-                            <span>
-                                @project.Progress%
-                            </span>
-
-                        </div>
-
-
-                        <div class="progress-track">
-
-                            <div
-                                class="progress-fill"
-                                style="width: @project.Progress%;">
+                    <div class="project-card">
+                        <div class="project-card-top">
+                            <div>
+                                <h3>@project.Name</h3>
+                                <p>@project.Description</p>
                             </div>
-
                         </div>
 
+                        <div class="project-progress">
+                            <div class="progress-info">
+                                <span>Progress</span>
+                                <span>@progressPercentage%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: @(progressPercentage)%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="project-footer">
+                            <span>@totalPTasks tasks</span>
+                            <span class="badge bg-secondary">@completedPTasks / @totalPTasks Done</span>
+                        </div>
                     </div>
-
-
-                    <div class="project-footer">
-
-                        <span>
-                            Due @project.DueDate
-                        </span>
-
-                        <span>
-                            @project.TaskCount tasks
-                        </span>
-
-                    </div>
-
-                </div>
-            }
-
-        </div>
-
+                }
+            </div>
+        }
     </section>
 
-
-    <!-- Tasks -->
+    <!-- My Tasks Section -->
     <section class="dashboard-section">
-
         <div class="section-heading">
-
             <div>
                 <h2>My Tasks</h2>
-
-                <p>
-                    View tasks assigned to you.
-                </p>
+                <p>Click on the checkbox next to any task to toggle its completion status.</p>
             </div>
-
             <span class="result-count">
                 @FilteredTasks.Count() tasks
             </span>
-
         </div>
 
+        @if (!FilteredTasks.Any())
+        {
+            <p class="text-muted">No tasks found matching your criteria.</p>
+        }
+        else
+        {
+            <div class="task-list">
+                @foreach (var task in FilteredTasks)
+                {
+                    var isCompleted = string.Equals(task.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(task.Status, "Done", StringComparison.OrdinalIgnoreCase);
 
-        <div class="task-list">
+                    <div class="dashboard-task">
+                        <div class="task-check @(isCompleted ? "completed" : "")"
+                             @onclick="() => ToggleTaskCompletion(task)"
+                             title="Click to toggle status">
+                        </div>
 
-            @foreach (var task in FilteredTasks)
-            {
-                <div class="dashboard-task">
+                        <div class="task-details">
+                            <h3>@task.Title</h3>
+                            <p>@(task.Project?.Name ?? "No Project")</p>
+                        </div>
 
-                    <div class="task-check @(task.Status == "Completed" ? "completed" : "")">
+                        <span class="priority @((task.Priority ?? "").ToLower())">
+                            @(task.Priority ?? "Normal")
+                        </span>
+
+                        <span class="task-status @(isCompleted ? "completed-text" : "")">
+                            @(task.Status ?? "To Do")
+                        </span>
                     </div>
-
-
-                    <div class="task-details">
-
-                        <h3>
-                            @task.Title
-                        </h3>
-
-                        <p>
-                            @task.ProjectName
-                        </p>
-
-                    </div>
-
-
-                    <span class="priority @task.Priority.ToLower()">
-                        @task.Priority
-                    </span>
-
-
-                    <span class="task-status @(task.Status == "Completed" ? "completed-text" : "")">
-                        @task.Status
-                    </span>
-
-                </div>
-            }
-
-        </div>
-
+                }
+            </div>
+        }
     </section>
 
 </div>
 
-
 @code {
-
     private string SearchText = "";
-
     private string SelectedStatus = "All";
-
     private string SelectedPriority = "All";
 
+    private List<Team13.Models.Project> Projects = new();
+    private List<Team13.Models.Task> Tasks = new();
 
-    /*
-     * Temporary UI data.
-     *
-     * Later, this can be replaced with
-     * real project and task data from
-     * the backend.
-     */
-
-    private List<ProjectItem> Projects = new()
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
-        new ProjectItem
-        {
-            Name = "Marketing Campaign",
-            Description = "Promote the new product launch.",
-            Status = "In Progress",
-            Progress = 75,
-            DueDate = "Oct 15",
-            TaskCount = 5
-        },
+        await LoadDataAsync();
+    }
 
-        new ProjectItem
-        {
-            Name = "School Event",
-            Description = "Plan the upcoming student event.",
-            Status = "In Progress",
-            Progress = 50,
-            DueDate = "Oct 20",
-            TaskCount = 8
-        },
-
-        new ProjectItem
-        {
-            Name = "Product Launch",
-            Description = "Prepare the product for launch.",
-            Status = "Not Started",
-            Progress = 0,
-            DueDate = "Nov 02",
-            TaskCount = 4
-        }
-    };
-
-
-    private List<TaskItem> Tasks = new()
+    private async System.Threading.Tasks.Task LoadDataAsync()
     {
-        new TaskItem
-        {
-            Title = "Prepare presentation",
-            ProjectName = "Marketing Campaign",
-            Priority = "High",
-            Status = "In Progress",
-            DueDate = DateTime.Today.AddDays(5)
-        },
+        using var context = await DbFactory.CreateDbContextAsync();
 
-        new TaskItem
-        {
-            Title = "Review project documents",
-            ProjectName = "School Event",
-            Priority = "Medium",
-            Status = "Completed",
-            DueDate = DateTime.Today.AddDays(-2)
-        },
+        Projects = await context.Set<Team13.Models.Project>()
+            .Include(p => p.Tasks)
+            .AsNoTracking()
+            .ToListAsync();
 
-        new TaskItem
+        Tasks = await context.Set<Team13.Models.Task>()
+            .Include(t => t.Project)
+            .Include(t => t.AssignedUser)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    private void FilterByStatus(string status)
+    {
+        SelectedStatus = status;
+        StateHasChanged();
+    }
+
+    private async System.Threading.Tasks.Task ToggleTaskCompletion(Team13.Models.Task task)
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var dbTask = await context.Set<Team13.Models.Task>().FindAsync(task.TaskId);
+        if (dbTask != null)
         {
-            Title = "Contact suppliers",
-            ProjectName = "Product Launch",
-            Priority = "Low",
-            Status = "Not Started",
-            DueDate = DateTime.Today.AddDays(10)
+            bool isDone = string.Equals(dbTask.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(dbTask.Status, "Done", StringComparison.OrdinalIgnoreCase);
+            dbTask.Status = isDone ? "To Do" : "Completed";
+
+            await context.SaveChangesAsync();
+            await LoadDataAsync();
         }
-    };
+    }
 
-
-    private IEnumerable<ProjectItem> FilteredProjects =>
+    private IEnumerable<Team13.Models.Project> FilteredProjects =>
         Projects.Where(project =>
-            (
-                string.IsNullOrWhiteSpace(SearchText) ||
-                project.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                project.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            )
-            &&
-            (
-                SelectedStatus == "All" ||
-                project.Status == SelectedStatus
-            )
+            (string.IsNullOrWhiteSpace(SearchText) ||
+             (project.Name != null && project.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+             (project.Description != null && project.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
         );
 
-
-    private IEnumerable<TaskItem> FilteredTasks =>
+    private IEnumerable<Team13.Models.Task> FilteredTasks =>
         Tasks.Where(task =>
-            (
-                string.IsNullOrWhiteSpace(SearchText) ||
-                task.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                task.ProjectName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-            )
+            (string.IsNullOrWhiteSpace(SearchText) ||
+             (task.Title != null && task.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+             (task.Project?.Name != null && task.Project.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
             &&
-            (
-                SelectedStatus == "All" ||
-                task.Status == SelectedStatus
-            )
+            (SelectedStatus == "All" ||
+             (SelectedStatus == "Completed" && (string.Equals(task.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(task.Status, "Done", StringComparison.OrdinalIgnoreCase))) ||
+             string.Equals(task.Status, SelectedStatus, StringComparison.OrdinalIgnoreCase))
             &&
-            (
-                SelectedPriority == "All" ||
-                task.Priority == SelectedPriority
-            )
+            (SelectedPriority == "All" ||
+             string.Equals(task.Priority, SelectedPriority, StringComparison.OrdinalIgnoreCase))
         );
-
 
     private int TotalProjects => Projects.Count;
-
     private int TotalTasks => Tasks.Count;
-
-    private int CompletedTasks =>
-        Tasks.Count(task => task.Status == "Completed");
-
-    private int OverdueTasks =>
-        Tasks.Count(task =>
-            task.DueDate < DateTime.Today &&
-            task.Status != "Completed"
-        );
-
-
-    private string GetStatusClass(string status)
-    {
-        return status switch
-        {
-            "In Progress" => "in-progress",
-            "Completed" => "completed-status",
-            _ => "not-started"
-        };
-    }
-
-
-    private class ProjectItem
-    {
-        public string Name { get; set; } = "";
-
-        public string Description { get; set; } = "";
-
-        public string Status { get; set; } = "";
-
-        public int Progress { get; set; }
-
-        public string DueDate { get; set; } = "";
-
-        public int TaskCount { get; set; }
-    }
-
-
-    private class TaskItem
-    {
-        public string Title { get; set; } = "";
-
-        public string ProjectName { get; set; } = "";
-
-        public string Priority { get; set; } = "";
-
-        public string Status { get; set; } = "";
-
-        public DateTime DueDate { get; set; }
-    }
-
+    private int InProgressTasksCount => Tasks.Count(t => string.Equals(t.Status, "In Progress", StringComparison.OrdinalIgnoreCase));
+    private int CompletedTasksCount => Tasks.Count(t => string.Equals(t.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "Done", StringComparison.OrdinalIgnoreCase));
 }

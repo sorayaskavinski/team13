@@ -7,29 +7,59 @@
 
         <div class="taskforge-nav-container">
 
+            <!-- Logo -->
             <a href="/" class="taskforge-logo">
                 Task<span>Forge</span>
             </a>
 
+            <!-- Navigation Links -->
             <nav class="taskforge-nav-links">
 
-                <a href="/">Home</a>
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    Home
+                </NavLink>
 
-                <a href="/#features">
-                    Features
-                </a>
+                <NavLink class="nav-link" href="dashboard">
+                    Dashboard
+                </NavLink>
 
-                <a href="/#how-it-works">
-                    How It Works
-                </a>
+                <NavLink class="nav-link" href="tasks">
+                    Tasks
+                </NavLink>
 
-                <a href="#">
-                    Sign In
-                </a>
+                <NavLink class="nav-link" href="tasks/create">
+                    + Task
+                </NavLink>
 
-                <a href="#" class="taskforge-nav-button">
-                    Get Started
-                </a>
+                <NavLink class="nav-link" href="projects/create">
+                    + Project
+                </NavLink>
+
+                <!-- Authentication View (Login / User Account / Register) -->
+                <AuthorizeView>
+                    <Authorized>
+                        <NavLink class="nav-link user-profile-link" href="Account/Manage">
+                            👤 @context.User.Identity?.Name
+                        </NavLink>
+
+                        <form action="Account/Logout" method="post" class="d-inline">
+                            <AntiforgeryToken />
+                            <button type="submit" class="taskforge-nav-button logout-btn">
+                                Logout
+                            </button>
+                        </form>
+                    </Authorized>
+
+                    <NotAuthorized>
+                        <a href="Account/Login" class="nav-link">
+                            Sign In
+                        </a>
+
+                        <a href="Account/Register" class="taskforge-nav-button">
+                            Get Started
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
 
             </nav>
 

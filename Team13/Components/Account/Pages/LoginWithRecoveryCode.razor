@@ -67,8 +67,8 @@
         }
         else if (result.IsLockedOut)
         {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
+            Logger.LogWarning("User account logged out.");
+            RedirectManager.RedirectTo("Account/Logout");
         }
         else
         {

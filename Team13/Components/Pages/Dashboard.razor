@@ -1,4 +1,4 @@
-@page "/dashboard"
+@page "/"
 @attribute [Authorize]
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
@@ -49,32 +49,7 @@
             <a href="projects/create" class="btn btn-outline-primary me-2">+ New Project</a>
             <a href="tasks/create" class="btn btn-primary">+ New Task</a>
         </div>
-    </div>
-
-    <!-- Search and Filters -->
-    <div class="dashboard-controls">
-        <div class="search-box">
-            <span>🔍</span>
-            <input type="text"
-                   placeholder="Search projects or tasks..."
-                   @bind="SearchText"
-                   @bind:event="oninput" />
-        </div>
-
-        <select @bind="SelectedStatus">
-            <option value="All">All Status</option>
-            <option value="To Do">To Do</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-        </select>
-
-        <select @bind="SelectedPriority">
-            <option value="All">All Priorities</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-        </select>
-    </div>
+    </div>  
 
     <!-- Overview Statistics -->
     <section class="dashboard-section">
@@ -179,7 +154,7 @@
         <div class="section-heading">
             <div>
                 <h2>My Tasks</h2>
-                <p>Click on the checkbox next to any task to toggle its completion status.</p>
+                <p>Click on the checkbox next to any task to toggle its completion status, or use the actions to edit/delete.</p>
             </div>
             <span class="result-count">
                 @FilteredTasks.Count() tasks
@@ -197,24 +172,37 @@
                 {
                     var isCompleted = IsTaskDone(task.Status);
 
-                    <div class="dashboard-task">
-                        <div class="task-check @(isCompleted ? "completed" : "")"
-                             @onclick="() => ToggleTaskCompletion(task)"
-                             title="Click to toggle status">
+                    <div class="dashboard-task d-flex align-items-center justify-content-between p-2 mb-2 border rounded">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="task-check @(isCompleted ? "completed" : "")"
+                                @onclick="() => ToggleTaskCompletion(task)"
+                                title="Click to toggle status">
+                            </div>
+
+                            <div class="task-details">
+                                <h3 class="m-0">@task.Title</h3>
+                                <small class="text-muted">@(task.Project?.Name ?? "No Project")</small>
+                            </div>
                         </div>
 
-                        <div class="task-details">
-                            <h3>@task.Title</h3>
-                            <p>@(task.Project?.Name ?? "No Project")</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="priority @((task.Priority ?? "").ToLower())">
+                                @(task.Priority ?? "Normal")
+                            </span>
+
+                            <span class="task-status @(isCompleted ? "completed-text" : "") me-3">
+                                @(task.Status ?? "To Do")
+                            </span>
+
+                            <!-- Action to edit and delete -->
+                            <a href="@($"tasks/edit/{task.TaskId}")" class="btn btn-sm btn-outline-secondary" title="Edit task">
+                                ✏️ Edit
+                            </a>
+
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteTask(task.TaskId)" title="Delete task">
+                                🗑️ Delete
+                            </button>
                         </div>
-
-                        <span class="priority @((task.Priority ?? "").ToLower())">
-                            @(task.Priority ?? "Normal")
-                        </span>
-
-                        <span class="task-status @(isCompleted ? "completed-text" : "")">
-                            @(task.Status ?? "To Do")
-                        </span>
                     </div>
                 }
             </div>
@@ -260,7 +248,7 @@
 
         using var context = await DbFactory.CreateDbContextAsync();
 
-        // Carrega projetos e tarefas criados exclusivamente por esta conta
+        // uploads projects and tasks created by the current user, including tasks from their projects
         Projects = await context.Set<Team13.Models.Project>()
             .Where(p => p.CreatedByUserId == currentUserId)
             .Include(p => p.Tasks)
@@ -328,6 +316,19 @@
             (SelectedPriority == "All" ||
              string.Equals(task.Priority, SelectedPriority, StringComparison.OrdinalIgnoreCase))
         );
+
+    private async System.Threading.Tasks.Task DeleteTask(int taskId)
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var dbTask = await context.Set<Team13.Models.Task>().FindAsync(taskId);
+
+        if (dbTask != null)
+        {
+            context.Set<Team13.Models.Task>().Remove(dbTask);
+            await context.SaveChangesAsync();
+            await LoadDataAsync(); 
+        }
+    }
 
     private int TotalProjects => Projects.Count;
     private int TotalTasks => Tasks.Count;

@@ -148,7 +148,7 @@
         try
         {
             await Db.SaveChangesAsync();
-            Navigation.NavigateTo("/dashboard");
+            Navigation.NavigateTo("/");
         }
         catch (DbUpdateException)
         {

@@ -68,6 +68,11 @@
     protected override void OnInitialized()
     {
         Input ??= new();
+        // Caso nenhum ReturnUrl tenha sido repassado, direciona por padrão para o Dashboard
+        if (string.IsNullOrEmpty(ReturnUrl) || ReturnUrl == "/")
+        {
+            ReturnUrl = "dashboard";
+        }
     }
 
     public async Task RegisterUser(EditContext editContext)

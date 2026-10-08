@@ -12,5 +12,7 @@ public class Project
 
     public string? Description { get; set; }
 
+    public string? CreatedByUserId { get; set; }
+
     public ICollection<Task> Tasks { get; set; } = new List<Task>();
 }

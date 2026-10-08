@@ -1,11 +1,17 @@
 @page "/tasks/create"
+@attribute [Authorize]
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Team13.Data
 @using Team13.Models
 @using TaskModel = Team13.Models.Task
 @inject Team13Context Db
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Create Task</PageTitle>
 
@@ -16,7 +22,7 @@
             <h1>Create task</h1>
             <p class="task-form-intro">Add a task to a project and assign it to a team member.</p>
         </div>
-        <a class="btn btn-outline-secondary" href="/">Cancel</a>
+        <a class="btn btn-outline-secondary" href="/dashboard">Cancel</a>
     </div>
 
     @if (isLoading)
@@ -67,10 +73,6 @@
                             <option value="@user.UserId">@user.UserName</option>
                         }
                     </InputSelect>
-                    @if (users.Count == 0)
-                    {
-                        <small class="form-hint">No team members are available yet.</small>
-                    }
                 </div>
 
                 <div class="form-field">
@@ -89,7 +91,7 @@
                         <option value="To Do">To Do</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Blocked">Blocked</option>
-                        <option value="Complete">Complete</option>
+                        <option value="Completed">Completed</option>
                     </InputSelect>
                 </div>
             </div>
@@ -101,7 +103,7 @@
 
             <div class="task-form-actions">
                 <button type="submit" class="btn btn-primary" disabled="@(projects.Count == 0)">Create task</button>
-                <a class="btn btn-link" href="/">Cancel</a>
+                <a class="btn btn-link" href="/dashboard">Cancel</a>
             </div>
         </EditForm>
     }
@@ -116,7 +118,16 @@
 
     protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
-        projects = await Db.Projects.OrderBy(project => project.Name).ToListAsync();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        var userId = currentUser?.Id;
+
+        // Apenas carrega os projetos do próprio usuário logado
+        projects = await Db.Projects
+            .Where(p => p.CreatedByUserId == userId)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
         users = await Db.Users.OrderBy(user => user.UserName).ToListAsync();
         isLoading = false;
     }
@@ -124,12 +135,20 @@
     private async System.Threading.Tasks.Task CreateTaskAsync()
     {
         errorMessage = null;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        if (currentUser != null)
+        {
+            task.CreatedByUserId = currentUser.Id;
+        }
+
         Db.Tasks.Add(task);
 
         try
         {
             await Db.SaveChangesAsync();
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("/dashboard");
         }
         catch (DbUpdateException)
         {
@@ -137,5 +156,4 @@
             errorMessage = "The task could not be created. Please check the selected project and try again.";
         }
     }
-
 }

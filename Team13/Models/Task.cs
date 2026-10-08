@@ -20,6 +20,8 @@ public class Task
 
     public User? AssignedUser { get; set; }
 
+    public string? CreatedByUserId { get; set; }
+
     [Range(1, int.MaxValue)]
     public int ProjectId { get; set; }
 

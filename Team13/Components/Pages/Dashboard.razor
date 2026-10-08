@@ -1,10 +1,13 @@
 @page "/dashboard"
+@attribute [Authorize]
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Team13.Data
 @using Team13.Models
+
 @inject IDbContextFactory<Team13Context> DbFactory
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -140,7 +143,7 @@
                 {
                     var projectTasks = project.Tasks ?? new List<Team13.Models.Task>();
                     var totalPTasks = projectTasks.Count;
-                    var completedPTasks = projectTasks.Count(t => string.Equals(t.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "Done", StringComparison.OrdinalIgnoreCase));
+                    var completedPTasks = projectTasks.Count(t => IsTaskDone(t.Status));
                     var progressPercentage = totalPTasks > 0 ? (int)Math.Round((double)completedPTasks / totalPTasks * 100) : 0;
 
                     <div class="project-card">
@@ -192,7 +195,7 @@
             <div class="task-list">
                 @foreach (var task in FilteredTasks)
                 {
-                    var isCompleted = string.Equals(task.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(task.Status, "Done", StringComparison.OrdinalIgnoreCase);
+                    var isCompleted = IsTaskDone(task.Status);
 
                     <div class="dashboard-task">
                         <div class="task-check @(isCompleted ? "completed" : "")"
@@ -235,19 +238,16 @@
 
     private async System.Threading.Tasks.Task LoadDataAsync()
     {
-        // 1. Verify if the user is authenticated
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
         if (user.Identity == null || !user.Identity.IsAuthenticated)
         {
-            // If the user is not authenticated, clear the lists and return
             Projects = new List<Team13.Models.Project>();
             Tasks = new List<Team13.Models.Task>();
             return;
         }
 
-        // 2. Get the current user from UserManager
         var currentUser = await UserManager.GetUserAsync(user);
         if (currentUser == null)
         {
@@ -256,15 +256,19 @@
             return;
         }
 
-        // 3. Gets Projects and Tasks to Dashboard
+        var currentUserId = currentUser.Id;
+
         using var context = await DbFactory.CreateDbContextAsync();
 
+        // Carrega projetos e tarefas criados exclusivamente por esta conta
         Projects = await context.Set<Team13.Models.Project>()
+            .Where(p => p.CreatedByUserId == currentUserId)
             .Include(p => p.Tasks)
             .AsNoTracking()
             .ToListAsync();
 
         Tasks = await context.Set<Team13.Models.Task>()
+            .Where(t => t.CreatedByUserId == currentUserId || (t.Project != null && t.Project.CreatedByUserId == currentUserId))
             .Include(t => t.Project)
             .Include(t => t.AssignedUser)
             .AsNoTracking()
@@ -284,22 +288,24 @@
 
     private async System.Threading.Tasks.Task ToggleTaskCompletion(Team13.Models.Task task)
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity == null || !authState.User.Identity.IsAuthenticated)
-        {
-            return;
-        }
-
         using var context = await DbFactory.CreateDbContextAsync();
         var dbTask = await context.Set<Team13.Models.Task>().FindAsync(task.TaskId);
         if (dbTask != null)
         {
-            bool isDone = string.Equals(dbTask.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(dbTask.Status, "Done", StringComparison.OrdinalIgnoreCase);
-            dbTask.Status = isDone ? "To Do" : "Completed";
+            dbTask.Status = IsTaskDone(dbTask.Status) ? "To Do" : "Completed";
 
             await context.SaveChangesAsync();
             await LoadDataAsync();
         }
+    }
+
+    private static bool IsTaskDone(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return false;
+        var s = status.Trim();
+        return string.Equals(s, "Completed", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(s, "Complete", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(s, "Done", StringComparison.OrdinalIgnoreCase);
     }
 
     private IEnumerable<Team13.Models.Project> FilteredProjects =>
@@ -316,7 +322,7 @@
              (task.Project?.Name != null && task.Project.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
             &&
             (SelectedStatus == "All" ||
-             (SelectedStatus == "Completed" && (string.Equals(task.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(task.Status, "Done", StringComparison.OrdinalIgnoreCase))) ||
+             (SelectedStatus == "Completed" && IsTaskDone(task.Status)) ||
              string.Equals(task.Status, SelectedStatus, StringComparison.OrdinalIgnoreCase))
             &&
             (SelectedPriority == "All" ||
@@ -326,5 +332,5 @@
     private int TotalProjects => Projects.Count;
     private int TotalTasks => Tasks.Count;
     private int InProgressTasksCount => Tasks.Count(t => string.Equals(t.Status, "In Progress", StringComparison.OrdinalIgnoreCase));
-    private int CompletedTasksCount => Tasks.Count(t => string.Equals(t.Status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "Done", StringComparison.OrdinalIgnoreCase));
+    private int CompletedTasksCount => Tasks.Count(t => IsTaskDone(t.Status));
 }

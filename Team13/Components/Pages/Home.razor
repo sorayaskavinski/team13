@@ -1,7 +1,253 @@
 ﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using Team13.Data
+@using Team13.Models
+@inject Team13Context DbContext
+@inject NavigationManager NavManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - TaskForge</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="dashboard-container">
+    <!-- Header with Integrated User Login State -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1 class="dashboard-title">Dashboard Overview</h1>
+            <p class="dashboard-subtitle">Track project health, task statuses, and team activity.</p>
+        </div>
 
-Welcome to your new app.
+        <div class="header-right">
+            <!-- User Login / Greeting Status -->
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-pill">
+                        <span class="user-avatar">👤</span>
+                        <div class="user-info">
+                            <span class="user-name">@context.User.Identity?.Name</span>
+                            <span class="user-status-online">● Online</span>
+                        </div>
+                        <a href="Account/Manage" class="btn-tf btn-tf-sm btn-tf-outline">Profile</a>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="auth-prompt-card">
+                        <span class="auth-text">Logged out</span>
+                        <a href="Account/Login" class="btn-tf btn-tf-sm btn-tf-primary">Log In</a>
+                        <a href="Account/Register" class="btn-tf btn-tf-sm btn-tf-secondary">Register</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <!-- Quick Action Buttons -->
+            <div class="action-buttons">
+                <a href="projects/create" class="btn-tf btn-tf-secondary">+ New Project</a>
+                <a href="tasks/create" class="btn-tf btn-tf-primary">+ New Task</a>
+            </div>
+        </div>
+    </header>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading dashboard stats...</p>
+        </div>
+    }
+    else
+    {
+        <!-- KPI Metrics Grid -->
+        <section class="metrics-grid">
+            <div class="metric-card" @onclick='() => SetStatusFilter("")'>
+                <div class="metric-icon total-icon">📁</div>
+                <div class="metric-content">
+                    <span class="metric-label">Total Projects</span>
+                    <h2 class="metric-value">@totalProjects</h2>
+                </div>
+            </div>
+
+            <div class="metric-card" @onclick='() => SetStatusFilter("")'>
+                <div class="metric-icon task-icon">📝</div>
+                <div class="metric-content">
+                    <span class="metric-label">Total Tasks</span>
+                    <h2 class="metric-value">@totalTasks</h2>
+                </div>
+            </div>
+
+            <div class="metric-card metric-card-todo @(selectedStatusFilter == "To Do" ? "active-filter" : "")" @onclick='() => SetStatusFilter("To Do")'>
+                <div class="metric-icon todo-icon">⌛</div>
+                <div class="metric-content">
+                    <span class="metric-label">To Do</span>
+                    <h2 class="metric-value">@todoTasksCount</h2>
+                </div>
+            </div>
+
+            <div class="metric-card metric-card-progress @(selectedStatusFilter == "In Progress" ? "active-filter" : "")" @onclick='() => SetStatusFilter("In Progress")'>
+                <div class="metric-icon progress-icon">🔄</div>
+                <div class="metric-content">
+                    <span class="metric-label">In Progress</span>
+                    <h2 class="metric-value">@inProgressTasksCount</h2>
+                </div>
+            </div>
+
+            <div class="metric-card metric-card-done @(selectedStatusFilter == "Done" || selectedStatusFilter == "Completed" ? "active-filter" : "")" @onclick='() => SetStatusFilter("Completed")'>
+                <div class="metric-icon done-icon">✅</div>
+                <div class="metric-content">
+                    <span class="metric-label">Completed</span>
+                    <h2 class="metric-value">@completedTasksCount</h2>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Content Layout -->
+        <div class="dashboard-content-grid">
+            <!-- Left Column: Tasks Overview -->
+            <section class="dashboard-section task-section">
+                <div class="section-header">
+                    <h3>Recent Tasks</h3>
+                    <div class="filter-tabs">
+                        <button class="tab-btn @(string.IsNullOrEmpty(selectedStatusFilter) ? "active" : "")" @onclick='() => SetStatusFilter("")'>All</button>
+                        <button class="tab-btn @(selectedStatusFilter == "To Do" ? "active" : "")" @onclick='() => SetStatusFilter("To Do")'>To Do</button>
+                        <button class="tab-btn @(selectedStatusFilter == "In Progress" ? "active" : "")" @onclick='() => SetStatusFilter("In Progress")'>In Progress</button>
+                        <button class="tab-btn @(selectedStatusFilter == "Completed" || selectedStatusFilter == "Done" ? "active" : "")" @onclick='() => SetStatusFilter("Completed")'>Done</button>
+                    </div>
+                </div>
+
+                @if (!FilteredTasks.Any())
+                {
+                    <div class="empty-state">
+                        <p>No tasks found for this view.</p>
+                        <a href="tasks/create" class="btn-tf btn-tf-sm btn-tf-primary">Create Task</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="task-list">
+                        @foreach (var task in FilteredTasks.Take(8))
+                        {
+                            <div class="task-card">
+                                <div class="task-main">
+                                    <h4 class="task-title">@task.Title</h4>
+                                    <span class="task-project-tag">@(task.Project?.Name ?? "No Project")</span>
+                                </div>
+                                <div class="task-meta">
+                                    <span class="badge badge-priority @GetPriorityClass(task.Priority)">@task.Priority</span>
+                                    <span class="badge badge-status @GetStatusClass(task.Status)">@task.Status</span>
+                                    <span class="task-assignee">👤 @(task.AssignedUser?.UserName ?? "Unassigned")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="section-footer">
+                        <a href="tasks" class="view-all-link">View All Tasks →</a>
+                    </div>
+                }
+            </section>
+
+            <!-- Right Column: Project Progress Overview -->
+            <section class="dashboard-section project-section">
+                <div class="section-header">
+                    <h3>Project Progress</h3>
+                </div>
+
+                @if (!projectsList.Any())
+                {
+                    <div class="empty-state">
+                        <p>No projects created yet.</p>
+                        <a href="projects/create" class="btn-tf btn-tf-sm btn-tf-secondary">Create Project</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="project-list">
+                        @foreach (var project in projectsList.Take(5))
+                        {
+                            var total = project.Tasks.Count;
+                            var completed = project.Tasks.Count(t => t.Status == "Completed" || t.Status == "Done");
+                            var percentage = total > 0 ? (int)Math.Round((double)completed / total * 100) : 0;
+
+                            <div class="project-progress-card">
+                                <div class="project-info">
+                                    <span class="project-name">@project.Name</span>
+                                    <span class="project-stats">@completed / @total tasks (@percentage%)</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" style="width: @(percentage)%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private int totalProjects;
+    private int totalTasks;
+    private int todoTasksCount;
+    private int inProgressTasksCount;
+    private int completedTasksCount;
+
+    private string selectedStatusFilter = "";
+    private List<Team13.Models.Task> tasksList = new();
+    private List<Team13.Models.Project> projectsList = new();
+
+    private IEnumerable<Team13.Models.Task> FilteredTasks =>
+        string.IsNullOrEmpty(selectedStatusFilter)
+            ? tasksList
+            : selectedStatusFilter == "Completed"
+                ? tasksList.Where(t => t.Status == "Completed" || t.Status == "Done")
+                : tasksList.Where(t => t.Status.Equals(selectedStatusFilter, StringComparison.OrdinalIgnoreCase));
+
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        try
+        {
+            projectsList = await DbContext.Set<Team13.Models.Project>()
+                .Include(p => p.Tasks)
+                .AsNoTracking()
+                .ToListAsync();
+
+            tasksList = await DbContext.Set<Team13.Models.Task>()
+                .Include(t => t.Project)
+                .Include(t => t.AssignedUser)
+                .AsNoTracking()
+                .ToListAsync();
+
+            totalProjects = projectsList.Count;
+            totalTasks = tasksList.Count;
+
+            todoTasksCount = tasksList.Count(t => t.Status.Equals("To Do", StringComparison.OrdinalIgnoreCase));
+            inProgressTasksCount = tasksList.Count(t => t.Status.Equals("In Progress", StringComparison.OrdinalIgnoreCase));
+            completedTasksCount = tasksList.Count(t => t.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) || t.Status.Equals("Done", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetStatusFilter(string status)
+    {
+        selectedStatusFilter = status;
+    }
+
+    private string GetPriorityClass(string priority) => priority?.ToLower() switch
+    {
+        "high" => "priority-high",
+        "medium" => "priority-medium",
+        "low" => "priority-low",
+        _ => "priority-medium"
+    };
+
+    private string GetStatusClass(string status) => status?.ToLower() switch
+    {
+        "completed" or "done" => "status-done",
+        "in progress" => "status-progress",
+        "to do" => "status-todo",
+        _ => "status-todo"
+    };
+}

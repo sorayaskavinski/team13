@@ -122,3 +122,31 @@ main {
     }
 
 }
+
+/* =================================
+   USER PROFILE
+================================= */
+
+
+.user-profile-button {
+    background: #F97316;
+    padding: 11px 20px;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600 !important;
+    cursor: pointer;
+    color: #FFFFFF !important;
+    border-radius: 8px;
+}
+
+.logout-btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+}
+
+.logout-btn:hover {
+    background: #EA580C;
+}

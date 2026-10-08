@@ -41,13 +41,14 @@
 
 .taskforge-nav-links a {
     text-decoration: none;
-    color: #CBD5E1;
-    font-size: 15px;
-    font-weight: 500;
+    color: #f1ead5 !important;
+    font-size: 20px;
+    font-weight: 800;
 }
 
 .taskforge-nav-links a:hover {
-    color: #FFFFFF;
+    color: #FFFFFF !important;
+    background: #1E293B;
 }
 
 .taskforge-nav-button {
@@ -59,4 +60,19 @@
 
 .taskforge-nav-button:hover {
     background: #EA580C;
+}
+
+/* =================================
+   NAV USER PROFILE
+================================= */
+
+.nav-user-link {
+    color: #FDBA74 !important;
+    font-weight: 600 !important;
+    border-radius: 8px;
+}
+
+.nav-user-link:hover {
+    color: #FFFFFF !important;
+    background: #1E293B;
 }

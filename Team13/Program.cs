@@ -60,6 +60,26 @@ builder.Services.AddSingleton<
 
 var app = builder.Build();
 
+
+// Apply database migrations at startup.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    // Database for user accounts and authentication.
+    var identityDb =
+        services.GetRequiredService<ApplicationDbContext>();
+
+    identityDb.Database.Migrate();
+
+    // Database for projects and tasks.
+    var projectDbFactory =
+        services.GetRequiredService<IDbContextFactory<Team13Context>>();
+
+    using var projectDb = projectDbFactory.CreateDbContext();
+    projectDb.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

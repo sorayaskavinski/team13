@@ -6,7 +6,7 @@ A modern, responsive task management application built with **.NET Blazor**, des
 
 ## 🎥 Video Demonstration & Project Links
 
-- **Video Demo:** [Watch on YouTube](https://youtube.com) *(Substitua pelo link do seu vídeo)*
+- **Video Demo:** [Watch on YouTube](https://youtu.be/SlUzcifaMHE) 
 - **GitHub Repository:** [https://github.com/sorayaskavinski/team13](https://github.com/sorayaskavinski/team13)
 
 ---
